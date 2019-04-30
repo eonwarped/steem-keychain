@@ -575,8 +575,12 @@ async function performTransaction(data, tab,no_confirm) {
                 }
                 break;
             case "signBuffer":
+                let signAcc = accounts.list.find(function(e) {
+                    return e.name == data.username;
+                });
+                const signKey = signAcc.keys[data.method.toLowerCase()];
                 try {
-                    let signed = window.signBuffer(data.message, key);
+                    let signed = window.signBuffer(data.message, signKey);
 
                     let message = {
                         command: "answerRequest",
@@ -711,8 +715,9 @@ function checkBeforeCreate(request, tab, domain) {
                     list: []
                 }) ? null : decryptToJson(items.accounts, mk);
                 let account = null;
-                if (request.type == "transfer") {
-                    let tr_accounts = accounts.list.filter(a => a.keys.hasOwnProperty("active"));
+                if (request.type == 'transfer' || request.type == 'signBuffer') {
+                    const keyType = request.type == 'transfer' ? 'active' : request.method.toLowerCase();
+                    let tr_accounts = accounts.list.filter(a => a.keys.hasOwnProperty(keyType));
                     const encode = (request.memo != undefined && request.memo.length > 0 && request.memo[0] == "#");
                     const enforce = request.enforce || encode;
                     if (encode)
@@ -723,18 +728,18 @@ function checkBeforeCreate(request, tab, domain) {
                     if (enforce && request.username && !tr_accounts.find(a => a.name == request.username)) {
                         createPopup(function() {
                             console.log("error1");
-                            sendErrors(tab, "user_cancel", "Request was canceled by the user.", "The current website is trying to send a transfer request to the Steem Keychain browser extension for account @" + request.username + " using the active key, which has not been added to the wallet.", request);
+                            sendErrors(tab, "user_cancel", "Request was canceled by the user.", `The current website is trying to send a request to the Steem Keychain browser extension for account @${request.username} using the ${keyType} key, which has not been added to the wallet.`, request);
                         });
                     } else if (encode && !account.keys.hasOwnProperty("memo")) {
                         createPopup(function() {
                             console.log("error2");
-                            sendErrors(tab, "user_cancel", "Request was canceled by the user.", "The current website is trying to send a request to the Steem Keychain browser extension for account @" + request.username + " using the memo key, which has not been added to the wallet.", request);
+                            sendErrors(tab, "user_cancel", "Request was canceled by the user.", `The current website is trying to send a request to the Steem Keychain browser extension for account @${request.username} using the memo key, which has not been added to the wallet.`, request);
                         });
                     }
                     else if (tr_accounts.length==0){
                       createPopup(function() {
                           console.log("error3");
-                        sendErrors(tab, "user_cancel", "Request was canceled by the user.", "The current website is trying to send a transfer request to the Steem Keychain browser extension for account @" + request.username + " using the active key, which has not been added to the wallet.", request);
+                        sendErrors(tab, "user_cancel", "Request was canceled by the user.", `The current website is trying to send a request to the Steem Keychain browser extension for account @${request.username} using the ${keyType} key, which has not been added to the wallet.`, request);
                       });
                     }
                     else {

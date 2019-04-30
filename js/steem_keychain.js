@@ -20,11 +20,12 @@ var steem_keychain = {
         this.dispatchCustomEvent("swRequest", request, callback);
     },
 
-    requestSignBuffer: function(account, message, key, callback) {
+    requestSignBuffer: function(account, message, key, callback, enforce = false) {
         var request = {
             type: "signBuffer",
             username: account,
             message: message,
+            enforce: enforce,
             method: key
         };
 

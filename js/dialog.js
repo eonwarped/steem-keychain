@@ -80,7 +80,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
             $("#dialog_message").text(msg.data.display_msg);
         }
 
-        if (type == "transfer") {
+        if (type == 'transfer' || type == 'signBuffer') {
             $('#modal-body-msg .msg-data').css('max-height', '200px');
             let accounts = msg.accounts;
             if (msg.data.username !== undefined) {
@@ -94,7 +94,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
             }
             for (acc of accounts) {
                 if (acc != undefined)
-                    $("#select_transfer").append("<option>" + acc.name + "</option>");
+                    $("#select_account").append("<option>" + acc.name + "</option>");
             }
             initiateCustomSelect();
         }
@@ -122,8 +122,13 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
                 $("#dialog_message").text('The website ' + msg.domain + ' would like to verify that you have access to the private ' + msg.data.method + ' key for the account: @' + msg.data.username);
                 break;
             case "signBuffer":
+                if (msg.data.enforce) {
+                    $("#username").show();
+                    $("#username").prev().show();
+                    $("#acct_list").hide();
+                }
                 $("#dialog_message").show();
-                $("#dialog_message").text('The website ' + msg.domain + ' would like you to sign a message using the ' + msg.data.method + ' key for the account: @' + msg.data.username);
+                $("#dialog_message").text('The website ' + msg.domain + ' would like you to sign a message using the ' + msg.data.method + ' key.');
                 const fullMessage = msg.data.message;
                 let truncatedMessage = fullMessage.substring(0, 200);
                 if (fullMessage.length > 200) {
@@ -185,7 +190,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
                 if (enforce) {
                     $("#username").show();
                     $("#username").prev().show();
-                    $("#transfer_acct_list").hide();
+                    $("#acct_list").hide();
                 }
                 $("#to").text('@' + msg.data.to);
                 $("#amount").text(msg.data.amount + " " + msg.data.currency);
@@ -254,8 +259,8 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
         // Closes the window and launch the transaction in background
         $("#proceed").click(function() {
             let data = msg.data;
-            if (data.type == "transfer" && !enforce)
-                data.username = $("#select_transfer option:selected").val();
+            if ((data.type == 'transfer' || data.type == 'signBuffer') && !enforce)
+                data.username = $("#select_account option:selected").val();
             chrome.runtime.sendMessage({
                 command: "acceptTransaction",
                 data: data,

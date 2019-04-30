@@ -66,7 +66,7 @@ function sendResponse(response) {
 function validate(req) {
     return req != null && req != undefined && req.type != undefined && req.type != null &&
         ((req.type == "decode" && isFilled(req.username) && isFilled(req.message) && req.message[0] == "#" && isFilledKey(req.method)) ||
-            (req.type == "signBuffer" && isFilled(req.username) && isFilled(req.message) && isFilledKey(req.method)) ||
+            (req.type == "signBuffer" && isFilled(req.message) && isFilledKey(req.method) && checkEnforceUsername(req)) ||
             (req.type == "vote" && isFilled(req.username) && isFilledWeight(req.weight) && isFilled(req.permlink) && isFilled(req.author)) ||
             (req.type == "post" && isFilled(req.username) && isFilled(req.body) && 
                 ( (isFilled(req.title) && isFilledOrEmpty(req.permlink) && !isFilled(req.parent_username) && !isFilled(req.parent_perm) && isFilled(req.json_metadata)) ||
@@ -79,7 +79,7 @@ function validate(req) {
             (req.type == "signedCall" && isFilled(req.method) && isFilled(req.params) && isFilled(req.typeWif)) ||
             (req.type == "witnessVote" && isFilled(req.username) && isFilled(req.witness) && isBoolean(req.vote)) ||
             (req.type == "delegation" && isFilled(req.username) && isFilled(req.delegatee) && isFilledAmtSP(req) && isFilledDelegationMethod(req.unit)) ||
-            (req.type == "transfer" && isFilledAmt(req.amount) && isFilled(req.to) && isFilledCurrency(req.currency) && hasTransferInfo(req)) ||
+            (req.type == "transfer" && isFilledAmt(req.amount) && isFilled(req.to) && isFilledCurrency(req.currency) && checkEnforceUsername(req)) ||
             (req.type == "sendToken" && isFilledAmt(req.amount) && isFilled(req.to) && isFilled(req.currency))||
             (req.type == "powerUp" && isFilled(req.username)&& isFilledAmt(req.steem) && isFilled(req.recipient))||
             (req.type == "powerDown" && isFilled(req.username)&& (isFilledAmt(req.steem_power)||req.steem_power=="0.000"))
@@ -88,7 +88,7 @@ function validate(req) {
 
 // Functions used to check the incoming data
 
-function hasTransferInfo(req) {
+function checkEnforceUsername(req) {
     if (req.enforce)
         return isFilled(req.username);
     else if (isFilled(req.memo) && req.memo[0] == "#")
