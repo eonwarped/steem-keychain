@@ -74,9 +74,9 @@ Sites can request that the extension sign and broadcast a transfer operation for
 ```
 steem_keychain.requestTransfer(account_name, to_account, amount, memo, currency, function(response) {
 	console.log(response);
-},enforce);
+}, enforce);
 ```
-where `memo` will be encrypted using Memo key if it is starting by `#`, and `enforce` doesn't allow the user to chose which account will make the transfer but rather enforce `account_name`.
+where `memo` will be encrypted using Memo key if it is starting by `#`, and `enforce` doesn't allow the user to chose which account will make the transfer but rather enforce `account_name` (optional, defaults to false).
 
 ### Decode Memo / Verify Key
 
@@ -129,10 +129,12 @@ Sites can request that the extension sign messages:
 ```
 steem_keychain.requestSignBuffer(account_name, message, key_type, function(response) {
         console.log(response);
-});
+}, enforce);
 ```
 
-Where "message" is any string and "key_type" can be "Posting" or "Active". This is equivalent to
+Where "message" is any string and "key_type" can be "Posting" or "Active", and `enforce` doesn't allow the user to chose which account will make the request but rather enforce `account_name` (optional, defaults to false).
+
+. This is equivalent to
 
 ```Signature.signBufferSha256(hash.sha256(message), wif).toHex();```
 
