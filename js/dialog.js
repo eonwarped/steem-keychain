@@ -105,7 +105,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
         $("#modal-content").css("align-items", "flex-start");
         const keyVerifyAction = msg.data.type == 'decode' || msg.data.type == 'signBuffer';
         console.log(msg.data.key);
-        if (msg.data.key!=="active"&&msg.data.type!="transfer") {
+        if (msg.data.key !== "active" && msg.data.type !== "transfer" && msg.data.username) {
             $("#keep_div").show();
             var prompt_msg = keyVerifyAction ? "Do not prompt again to verify keys for the @" + msg.data.username + " account on " + msg.domain :
                 "Do not prompt again to send " + msg.data.type + " transactions from the @" + msg.data.username + " account on " + msg.domain
