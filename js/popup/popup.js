@@ -26,10 +26,19 @@ function sendAutolock(){
   });
 }
 
+function checkKeychainify() {
+    chrome.storage.local.get(['use_keychainify'], function(items) {
+        if (items.use_keychainify !== undefined) {
+            $(".enable_keychainify input").prop("checked", items.use_keychainify);
+        } else {
+            $(".enable_keychainify input").prop("checked", true);
+        }
+    });
+}
+
 // Check if we have mk or if accounts are stored to know if the wallet is locked unlocked or new.
 chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
     if (msg.command == "sendBackMk") {
-      console.log("receive",msg.mk);
         chrome.storage.local.get(['accounts', 'current_rpc'], function(items) {
             steem.api.setOptions({
                 url: items.current_rpc || 'https://api.steemit.com'
@@ -53,7 +62,15 @@ $(".autolock").click(function() {
     $(".autolock input").prop("checked", false);
     $(this).find("input").prop("checked", "true");
     $("#mn").css('visibility', $(this).find("input").attr("id") == "idle" ? 'visible' : 'hidden');
+});
 
+// Save enable_keychainify
+$(".enable_keychainify").click(function() {
+    const enable_keychainify = $(this).find("input").prop("checked");
+    $(this).find("input").prop("checked", !enable_keychainify);
+    chrome.storage.local.set({
+        use_keychainify: !enable_keychainify
+    });
 });
 
 // Saving autolock options
@@ -101,7 +118,6 @@ $("#submit_unlock").click(function() {
             $(".error_div").html("");
             $(".error_div").hide();
             $("#unlock_pwd").val("");
-            sendAutolock();
             initializeMainMenu();
         } else {
             showError("Wrong password!");
@@ -142,12 +158,12 @@ function acceptMP(mp){
 }
 // Set visibilities back to normal when coming back to main menu
 function initializeMainMenu() {
+    sendAutolock();
+    checkKeychainify();
     initializeVisibility();
     manageKey = false;
     getPref = false;
-    console.log("a");
     chrome.storage.local.get(['accounts', 'last_account', 'rpc', 'current_rpc','transfer_to'], function(items) {
-        console.log(items);
         to_autocomplete=(items.transfer_to?JSON.parse(items.transfer_to):{});
         accounts_json = (items.accounts == undefined || items.accounts == {
             list: []
@@ -191,6 +207,7 @@ function confirmTransfer(){
   const amount = $("#amt_send").val();
   const currency = $("#currency_send .select-selected").html();
   let memo = $("#memo_send").val();
+  $("#from_conf_transfer").text("@"+active_account.name)
   $("#to_conf_transfer").text("@"+to);
   $("#amt_conf_transfer").text(amount+" "+currency);
   $("#memo_conf_transfer").text((memo==""?"Empty":memo)+((memo!=""&&$("#encrypt_memo").prop("checked"))?" (encrypted)":""));

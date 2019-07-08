@@ -4,7 +4,7 @@ const urlSSC = [ "https://api.steem-engine.com/rpc" ];
 const ssc = new SSC(urlSSC[0]);
 let hidden_tokens = [];
 const steemEngine = "https://api.steem-engine.com/accounts";
-const CHAIN_ID = "ssc-mainnet1"
+const CHAIN_ID = config.mainNet;
 
 chrome.storage.local.get(['hidden_tokens'], function(items) {
     if (items.hidden_tokens)
@@ -13,7 +13,6 @@ chrome.storage.local.get(['hidden_tokens'], function(items) {
 
 getTokens().then(function(tok) {
     tokens = tok;
-    console.log(tokens);
     for (token of tokens) {
         let html = "<div class='row_existing_tokens'>\
     <div class='key_checkbox'>\
@@ -61,7 +60,6 @@ getTokens().then(function(tok) {
 
 function showTokenBalances(account) {
     getAccountBalances(account.name).then((tokenBalances) => {
-        console.log(tokenBalances);
         accountTokenBalances = tokenBalances;
         $("#tokens_list").empty();
         for (token of tokenBalances) {
@@ -113,17 +111,20 @@ function showTokenBalances(account) {
             getTokenHistory(active_account.name,20,0,symbol).then(function(history){
               for (elt of history){
                 const date = new Date(elt.timestamp);
-                const timestamp = (date.getMonth() + 1) + '/' + date.getDate() + '/' + date.getFullYear();
-                console.log(elt.memo)
-                $("#history_tokens_rows").append(
-                  "<div class='history_tokens_row "+(elt.memo!=null?"history_row_memo":"")+"'>\
-                    <span class='history_date ' title='"+elt.timestamp+"'>" + timestamp + "</span>\
-                    <span class='history_val'>" + (elt.from == active_account.name ? "-" : "+") + " " + elt.quantity + "</span>\
-                    <span class='history_name'>" + (elt.from == active_account.name ? "TO: @" + elt.to : "FROM: @" + elt.from) +"</span>\
-                    <span class='history_cur'>" + elt.symbol + "</span>\
-                    <div class='history_memo'>" + elt.memo + "</div>\
-                  </div>"
-                );
+								const timestamp = (date.getMonth() + 1) + '/' + date.getDate() + '/' + date.getFullYear();
+								
+								var history_row = $("<div class='history_tokens_row "+(elt.memo!=null?"history_row_memo":"")+"'>\
+										<span class='history_date ' title='"+elt.timestamp+"'>" + timestamp + "</span>\
+										<span class='history_val'>" + (elt.from == active_account.name ? "-" : "+") + " " + elt.quantity + "</span>\
+										<span class='history_name'>" + (elt.from == active_account.name ? "TO: @" + elt.to : "FROM: @" + elt.from) +"</span>\
+										<span class='history_cur'>" + elt.symbol + "</span>\
+									</div>");
+
+								var memo_element = $("<div class='history_memo'></div>");
+								memo_element.text(elt.memo);
+								history_row.append(memo_element)
+                
+                $("#history_tokens_rows").append(history_row);
               }
               $("#loading_history_token").hide();
               $(".history_tokens_row").unbind("click").click(function(){

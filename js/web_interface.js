@@ -68,8 +68,8 @@ function validate(req) {
         ((req.type == "decode" && isFilled(req.username) && isFilled(req.message) && req.message[0] == "#" && isFilledKey(req.method)) ||
             (req.type == "signBuffer" && isFilled(req.message) && isFilledKey(req.method) && checkEnforceUsername(req)) ||
             (req.type == "vote" && isFilled(req.username) && isFilledWeight(req.weight) && isFilled(req.permlink) && isFilled(req.author)) ||
-            (req.type == "post" && isFilled(req.username) && isFilled(req.body) && 
-                ( (isFilled(req.title) && isFilledOrEmpty(req.permlink) && !isFilled(req.parent_username) && !isFilled(req.parent_perm) && isFilled(req.json_metadata)) ||
+            (req.type == "post" && isFilled(req.username) && isFilled(req.body) &&
+                ( (isFilled(req.title) && isFilledOrEmpty(req.permlink) && !isFilled(req.parent_username) && isFilled(req.parent_perm) && isFilled(req.json_metadata)) ||
                   (!isFilled(req.title) && isFilledOrEmpty(req.permlink) && isFilled(req.parent_username) && isFilled(req.parent_perm) && isFilledOrEmpty(req.json_metadata))
                 ) && isCustomOptions(req)) ||
             (req.type == "custom" && isFilled(req.username) && isFilled(req.json) && isFilled(req.id)) ||
@@ -82,7 +82,8 @@ function validate(req) {
             (req.type == "transfer" && isFilledAmt(req.amount) && isFilled(req.to) && isFilledCurrency(req.currency) && checkEnforceUsername(req)) ||
             (req.type == "sendToken" && isFilledAmt(req.amount) && isFilled(req.to) && isFilled(req.currency))||
             (req.type == "powerUp" && isFilled(req.username)&& isFilledAmt(req.steem) && isFilled(req.recipient))||
-            (req.type == "powerDown" && isFilled(req.username)&& (isFilledAmt(req.steem_power)||req.steem_power=="0.000"))
+            (req.type == "powerDown" && isFilled(req.username)&& (isFilledAmt(req.steem_power)||req.steem_power=="0.000"))||
+            (req.type == "createClaimedAccount" && isFilled(req.username)&& isFilled(req.new_account)&& isFilled(req.owner)&& isFilled(req.active)&& isFilled(req.posting)&& isFilled(req.memo))
         );
 }
 

@@ -8,6 +8,7 @@ let request_id = null;
 let accounts = null;
 let timeoutIdle=null;
 let autolock=null;
+let interval=null;
 // Lock after the browser is idle for more than 10 minutes
 
 chrome.storage.local.get(['current_rpc','autolock'], function(items) {
@@ -21,6 +22,16 @@ chrome.storage.local.get(['current_rpc','autolock'], function(items) {
 	});
 });
 
+chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
+    if(details.frameId === 0) {
+        // Fires only when details.url === currentTab.url
+        chrome.tabs.get(details.tabId, async function(tab) {
+            if(await keychainify.isKeychainifyEnabled()) {
+                keychainify.keychainifyUrl(tab);
+            }
+        });
+    }
+});
 
 async function startAutolock(autoLock){
   //Receive autolock from the popup (upon registration or unlocking)
@@ -56,23 +67,27 @@ function restartIdleCounter(){
   },autolock.mn*60000);
 }
 //Listen to the other parts of the extension
-chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
+chrome.runtime.onMessage.addListener(chromeMessageHandler);
+
+function chromeMessageHandler(msg, sender, sendResp) {
     // Send mk upon request from the extension popup.
     if (autolock!=null&&autolock.type=="idle"&&(msg.command == "getMk"||msg.command == "setRPC"||msg.command == "sendMk"||msg.command == "sendRequest"||msg.command == "acceptTransaction"||msg.command == "ping"))
-      restartIdleCounter();
+        restartIdleCounter();
     if (msg.command == "getMk") {
         chrome.runtime.sendMessage({
             command: "sendBackMk",
             mk: mk
         }, function(response) {});
-    } else if (msg.command == "setRPC") {
+    } else if (msg.command == "stopInterval") {
+        clearInterval(interval);
+    }else if (msg.command == "setRPC") {
         steem.api.setOptions({
             url: msg.rpc || 'https://api.steemit.com'
         });
     } else if (msg.command == "sendMk") { //Receive mk from the popup (upon registration or unlocking)
         mk = msg.mk;
     } else if (msg.command == "sendAutolock") {
-      startAutolock(JSON.parse(msg.autolock));
+        startAutolock(JSON.parse(msg.autolock));
     } else if (msg.command == "sendRequest") { // Receive request (website -> content_script -> background)
         // create a window to let users confirm the transaction
         tab = sender.tab.id;
@@ -116,7 +131,7 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
         performTransaction(msg.data, msg.tab,false);
         // upon receiving the confirmation from user, perform the transaction and notify content_script. Content script will then notify the website.
     }
-});
+}
 
 async function performTransaction(data, tab,no_confirm) {
     try {
@@ -147,7 +162,6 @@ async function performTransaction(data, tab,no_confirm) {
                 });
                 break;
 						case "custom":
-								console.log(steem.config);
                 steem.broadcast.customJson(key, data.method.toLowerCase() == "active" ? [data.username] : null, data.method.toLowerCase() == "posting" ? [data.username] : null, data.id, data.json, function(err, result) {
                     const message = {
                         command: "answerRequest",
@@ -339,10 +353,47 @@ async function performTransaction(data, tab,no_confirm) {
                     accounts = null;
                 });
                 break;
+            case "createClaimedAccount":
+
+            steem.broadcast.createClaimedAccountAsync(
+                key,
+                data.username,
+                data.new_account,
+                JSON.parse(data.owner),
+                JSON.parse(data.active),
+                JSON.parse(data.posting),
+                data.memo,
+                {},
+                [])
+                .then(function(result, err) {
+                    console.log(err, result);
+                    const message = {
+                        command: "answerRequest",
+                        msg: {
+                            success: err == null,
+                            error: err,
+                            result: result,
+                            data: data,
+                            message: err == null ? "The transaction has been broadcasted successfully." : "There was an error broadcasting this transaction, please try again.",
+                            request_id: request_id
+                        }
+                    };
+                    chrome.tabs.sendMessage(tab, message);
+                    if(no_confirm){
+                      if (id_win != null)
+                          removeWindow(id_win);
+                    }
+                    else
+                      chrome.runtime.sendMessage(message);
+                    key = null;
+                    accounts = null;
+                });
+                break;
             case "broadcast":
                 const operations = data.operations;
                 const broadcastKeys = {};
                 broadcastKeys[data.typeWif] = key;
+                console.log(operations,broadcastKeys);
                 steem.broadcast.send({
                     operations,
                     extensions: []
@@ -503,14 +554,14 @@ async function performTransaction(data, tab,no_confirm) {
                 });
                 break;
             case "sendToken":
-                const id = "ssc-00000000000000000002";
+                const id = config.mainNet;
                 const json = {
                     "contractName": "tokens",
                     "contractAction": "transfer",
                     "contractPayload": {
                         "symbol": data.currency,
                         "to": data.to,
-                        "quantity": parseFloat(data.amount),
+                        "quantity": data.amount,
                         "memo":data.memo
                     }
                 };
@@ -547,16 +598,19 @@ async function performTransaction(data, tab,no_confirm) {
                             request_id: request_id
                         }
                     };
+
                     chrome.tabs.sendMessage(tab, message);
                     if(no_confirm){
                       if (id_win != null)
                           removeWindow(id_win);
                     }
-                    else
+                    else {
                       chrome.runtime.sendMessage(message);
+                    }
                     key = null;
                     accounts = null;
                 } catch (err) {
+                  console.log(err);
                     let message = {
                         command: "answerRequest",
                         msg: {
@@ -652,20 +706,18 @@ function createPopup(callback) {
             top: w.top
         }, function(win) {
             id_win = win.id;
-
-            setTimeout(function() {
-                // Window create fails to take into account window size so it s updated afterwhile.
-                chrome.windows.update(win.id, {
-                    height: 566,
-                    width: width,
-                    top: w.top,
-                    left: w.width - width + w.left
-                });
-                callback();
-            }, 300);
+            // Window create fails to take into account window size so it s updated afterwhile.
+            chrome.windows.update(win.id, {
+                height: 566,
+                width: width,
+                top: w.top,
+                left: w.width - width + w.left
+            });
+            clearInterval(interval);
+            interval=setInterval(callback,200);
+            setTimeout(function(){clearInterval(interval)},2000);
         });
     });
-
 }
 
 chrome.windows.onRemoved.addListener(function(id) {
@@ -688,6 +740,7 @@ chrome.windows.onRemoved.addListener(function(id) {
 function checkBeforeCreate(request, tab, domain) {
     if (mk == null) { // Check if locked
         function callback() {
+          console.log("locked");
             chrome.runtime.sendMessage({
                 command: "sendDialogError",
                 msg: {
@@ -809,7 +862,7 @@ function checkBeforeCreate(request, tab, domain) {
 
 function hasNoConfirm(arr, data, domain) {
     try {
-        if (data.method == "active") {
+        if (data.method == "active"||arr==undefined) {
             return false;
         } else
             return JSON.parse(arr)[data.username][domain][data.type] == true;
@@ -820,7 +873,9 @@ function hasNoConfirm(arr, data, domain) {
 }
 // Send errors back to the content_script, it will forward it to website
 function sendErrors(tab, error, message, display_msg, request) {
-    chrome.runtime.sendMessage({
+    clearInterval(interval);
+    interval=setInterval(function(){
+      chrome.runtime.sendMessage({
         command: "sendDialogError",
         msg: {
             success: false,
@@ -833,6 +888,8 @@ function sendErrors(tab, error, message, display_msg, request) {
         },
         tab: tab
     });
+  },200);
+  setTimeout(function(){clearInterval(interval)},2000);
     key = null;
     accounts = null;
 }
@@ -875,15 +932,18 @@ function getRequiredWifType(request) {
         case "powerDown":
             return "active";
             break;
+        case "createClaimedAccount":
+            return "active";
+            break;
     }
 }
 
 // check if win exists before removing it
 function removeWindow(id_win){
+  console.log(id_win);
   chrome.windows.getAll(function(windows){
     const hasWin=windows.filter((win)=>{return win.id==id_win}).length;
     if(hasWin){
-      console.log(hasWin);
       chrome.windows.remove(id_win);
     }
   });

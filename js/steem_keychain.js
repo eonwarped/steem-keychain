@@ -180,6 +180,20 @@ var steem_keychain = {
         this.dispatchCustomEvent("swRequest", request, callback);
     },
 
+
+    requestCreateClaimedAccount: function(username, new_account, owner, active, posting, memo,callback) {
+      const request = {
+        type: "createClaimedAccount",
+        username,
+        new_account,
+        owner,
+        active,
+        posting,
+        memo
+      };
+
+      this.dispatchCustomEvent("swRequest", request, callback);
+    },
     // Send the customEvent
     dispatchCustomEvent: function(name, data, callback) {
         this.requests[this.current_id] = callback;
