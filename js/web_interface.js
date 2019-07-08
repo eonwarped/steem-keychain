@@ -66,7 +66,7 @@ function sendResponse(response) {
 function validate(req) {
     return req != null && req != undefined && req.type != undefined && req.type != null &&
         ((req.type == "decode" && isFilled(req.username) && isFilled(req.message) && req.message[0] == "#" && isFilledKey(req.method)) ||
-            (req.type == "signBuffer" && isFilled(req.message) && isFilledKey(req.method) && checkEnforceUsername(req)) ||
+            (req.type == "signBuffer" && isFilled(req.message) && isFilledKey(req.method)) ||
             (req.type == "vote" && isFilled(req.username) && isFilledWeight(req.weight) && isFilled(req.permlink) && isFilled(req.author)) ||
             (req.type == "post" && isFilled(req.username) && isFilled(req.body) &&
                 ( (isFilled(req.title) && isFilledOrEmpty(req.permlink) && !isFilled(req.parent_username) && isFilled(req.parent_perm) && isFilled(req.json_metadata)) ||

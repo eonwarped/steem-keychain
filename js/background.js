@@ -772,7 +772,8 @@ function checkBeforeCreate(request, tab, domain) {
                     const keyType = request.type == 'transfer' ? 'active' : request.method.toLowerCase();
                     let tr_accounts = accounts.list.filter(a => a.keys.hasOwnProperty(keyType));
                     const encode = (request.memo != undefined && request.memo.length > 0 && request.memo[0] == "#");
-                    const enforce = request.enforce || encode;
+                    const enforce = request.enforce || encode
+                        || (request.type == 'signBuffer' && request.username);
                     if (encode)
                         account = accounts.list.find(function(e) {
                             return e.name == request.username;

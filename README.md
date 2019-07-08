@@ -132,7 +132,7 @@ steem_keychain.requestSignBuffer(account_name, message, key_type, function(respo
 }, enforce);
 ```
 
-Where "message" is any string and "key_type" can be "Posting" or "Active", and `enforce` doesn't allow the user to chose which account will make the request but rather enforce `account_name` (optional, defaults to false).
+Where "message" is any string and "key_type" can be "Posting" or "Active", and "account_name" can be omitted optionally to allow the user to choose an account to sign the message with.
 
 . This is equivalent to
 

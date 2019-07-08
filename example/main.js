@@ -68,7 +68,7 @@ $("#send_signature").click(function() {
     steem_keychain.requestSignBuffer($("#sign_username").val(), $("#sign_message").val(), $("#sign_method option:selected").text(), function(response) {
         console.log('main js response - sign');
         console.log(response);
-    }, $("#sign_enforce").is(":checked"));
+    });
 });
 
 $("#send_addauth").click(function() {

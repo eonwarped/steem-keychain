@@ -126,13 +126,13 @@ chrome.runtime.onMessage.addListener(function(msg, sender, sendResp) {
                 $("#dialog_message").text('The website ' + msg.domain + ' would like to verify that you have access to the private ' + msg.data.method + ' key for the account: @' + msg.data.username);
                 break;
             case "signBuffer":
-                if (msg.data.enforce) {
+                if (msg.data.username) {
                     $("#username").show();
                     $("#username").prev().show();
                     $("#acct_list").hide();
                 }
                 $("#dialog_message").show();
-                $("#dialog_message").text('The website ' + msg.domain + ' would like you to sign a message using the ' + msg.data.method + ' key.');
+                $("#dialog_message").text('The website ' + msg.domain + ' would like you to sign a message using the ' + msg.data.method + ' key' + (msg.data.username ? ' for the account: @' + msg.data.username : '') + '.');
                 const fullMessage = msg.data.message;
                 let truncatedMessage = fullMessage.substring(0, 200);
                 if (fullMessage.length > 200) {
